@@ -25,6 +25,28 @@ use crate::utils::{EventListener, on, RefCounter, MutableListener, UnwrapJsExt, 
 #[cfg(doc)]
 use crate::fragment;
 
+#[allow(unexpected_cfgs)]
+#[cfg(web_sys_unstable_apis)]
+macro_rules! scroll_signal_value_ty {
+    () => { f64 };
+}
+
+#[allow(unexpected_cfgs)]
+#[cfg(not(web_sys_unstable_apis))]
+macro_rules! scroll_signal_value_ty {
+    () => { i32 };
+}
+
+#[inline]
+fn set_scroll_left_from_signal(element: &Element, value: scroll_signal_value_ty!()) {
+    element.set_scroll_left(value);
+}
+
+#[inline]
+fn set_scroll_top_from_signal(element: &Element, value: scroll_signal_value_ty!()) {
+    element.set_scroll_top(value);
+}
+
 
 pub struct RefFn<A, B, C> where B: ?Sized, C: Fn(&A) -> &B {
     value: A,
@@ -1427,8 +1449,8 @@ impl<A> DomBuilder<A> where A: AsRef<Element> {
     // TODO should this inline ?
     // TODO track_caller
     fn set_scroll_signal<B, F>(&mut self, signal: B, mut f: F)
-        where B: Signal<Item = Option<i32>> + 'static,
-              F: FnMut(&Element, i32) + 'static {
+        where B: Signal<Item = Option<scroll_signal_value_ty!()>> + 'static,
+              F: FnMut(&Element, scroll_signal_value_ty!()) + 'static {
 
         let element: Element = self.element.as_ref().clone();
 
@@ -1445,18 +1467,18 @@ impl<A> DomBuilder<A> where A: AsRef<Element> {
     // TODO rename to scroll_x_signal ?
     #[inline]
     #[track_caller]
-    pub fn scroll_left_signal<B>(mut self, signal: B) -> Self where B: Signal<Item = Option<i32>> + 'static {
+    pub fn scroll_left_signal<B>(mut self, signal: B) -> Self where B: Signal<Item = Option<scroll_signal_value_ty!()>> + 'static {
         // TODO bindings function for this ?
-        self.set_scroll_signal(signal, Element::set_scroll_left);
+        self.set_scroll_signal(signal, set_scroll_left_from_signal);
         self
     }
 
     // TODO rename to scroll_y_signal ?
     #[inline]
     #[track_caller]
-    pub fn scroll_top_signal<B>(mut self, signal: B) -> Self where B: Signal<Item = Option<i32>> + 'static {
+    pub fn scroll_top_signal<B>(mut self, signal: B) -> Self where B: Signal<Item = Option<scroll_signal_value_ty!()>> + 'static {
         // TODO bindings function for this ?
-        self.set_scroll_signal(signal, Element::set_scroll_top);
+        self.set_scroll_signal(signal, set_scroll_top_from_signal);
         self
     }
 
